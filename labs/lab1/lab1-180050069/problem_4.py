@@ -10,7 +10,7 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 
 	X, Y = load_data2(args.data)
-	X = X.astype('f') + np.random.normal(size = (X.shape))
+	X = X.astype('f')
 
 	assert X.shape[1] >= 3
 

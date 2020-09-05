@@ -21,14 +21,14 @@ def mse(X, Y, W):
 
 	return mse
 
-def ordinary_least_squares(X_train, Y_train, X_test, Y_test, lr=0.01, max_iter=3000):
+def ordinary_least_squares(X_train, Y_train, X_test, Y_test, lr=0.001, max_iter=5000):
 	train_mses = []
 	test_mses = []
 
 	## TODO: Initialize W using using random normal 
 	n_features = X_train.shape[1]
 	n_samples = X_train.shape[0]
-	W = np.random.normal(size=(n_features,1))
+	W = np.random.normal(size=(n_features,1))/ (n_samples**0.5)
 	## END TODO
 
 	for i in range(max_iter):
@@ -48,7 +48,7 @@ def ordinary_least_squares(X_train, Y_train, X_test, Y_test, lr=0.01, max_iter=3
 
 	return W, train_mses, test_mses
 
-def ridge_regression(X_train, Y_train, X_test, Y_test, reg, lr=0.0001, max_iter=2000):
+def ridge_regression(X_train, Y_train, X_test, Y_test, reg, lr=0.001, max_iter=1000):
 	'''
 	reg - regularization parameter (lambda in Q2.1 c)
 	'''
@@ -58,15 +58,14 @@ def ridge_regression(X_train, Y_train, X_test, Y_test, reg, lr=0.0001, max_iter=
 	## TODO: Initialize W using using random normal 
 	n_features = X_train.shape[1]
 	n_samples = X_train.shape[0]
-	W = np.random.normal(size=(n_features,1))
+	W = np.random.normal(size=(n_features,1))/ (n_samples**0.5)
 	## END TODO
 
 	for i in range(max_iter):
 
 		## TODO: Compute train and test MSE
-		reg_term = reg*(W**2).sum()
-		train_mse = mse(X_train, Y_train, W) + reg_term
-		test_mse = mse(X_test, Y_test, W) + reg_term
+		train_mse = mse(X_train, Y_train, W)
+		test_mse = mse(X_test, Y_test, W)
 		## END TODO
 
 		train_mses.append(train_mse)
@@ -87,7 +86,10 @@ def weighted_regression(X, Y, r):
 	'''
 
 	## TODO
-
+	R = np.diag(r)
+	term1 = np.linalg.inv(X.T.dot(R).dot(R).dot(X))
+	term2 = X.T.dot(R).dot(R).dot(Y)
+	W = term1.dot(term2)
 	## END TODO
 	return W
 
@@ -98,7 +100,10 @@ if __name__ == '__main__':
 	X_train, Y_train, X_test, Y_test = split_data(X, Y)
 
 	W, train_mses, test_mses = ordinary_least_squares(X_train, Y_train, X_test, Y_test)
+	# W2 = weighted_regression(X,Y,np.ones((X.shape[0])))
 	# W_ridge, train_mses, test_mses = ridge_regression(X_train, Y_train, X_test, Y_test, 10)
+	# print(train_mses[-1])
+	# print(test_mses[-1])
 
 	# Plots
 	plt.figure(figsize=(4,4))
