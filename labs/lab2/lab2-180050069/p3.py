@@ -47,10 +47,10 @@ if __name__ == "__main__":
     Y_2 = Y_train[indices_2]
     X_3 = X_train[indices_3,:]
     Y_3 = Y_train[indices_3]
-    W_0 = np.linalg.inv(X_0.T.dot(X_0)).dot(X_0.T).dot(Y_0)
-    W_1 = np.linalg.inv(X_1.T.dot(X_1)).dot(X_1.T).dot(Y_1)
-    W_2 = np.linalg.inv(X_2.T.dot(X_2)).dot(X_2.T).dot(Y_2)
-    W_3 = np.linalg.inv(X_3.T.dot(X_3)).dot(X_3.T).dot(Y_3)
+    W_0 = np.linalg.pinv(X_0.T.dot(X_0)).dot(X_0.T).dot(Y_0)
+    W_1 = np.linalg.pinv(X_1.T.dot(X_1)).dot(X_1.T).dot(Y_1)
+    W_2 = np.linalg.pinv(X_2.T.dot(X_2)).dot(X_2.T).dot(Y_2)
+    W_3 = np.linalg.pinv(X_3.T.dot(X_3)).dot(X_3.T).dot(Y_3)
     ## END TODO
 
 
