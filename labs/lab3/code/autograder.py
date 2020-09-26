@@ -2,7 +2,7 @@ import numpy as np
 import perceptron
 from binary_logistic_regression import *
 from utils import *
-# from multiclass_logistic_regression import *
+from multiclass_logistic_regression import *
 
 np.random.seed(335)
 
@@ -107,5 +107,4 @@ def grade3():
 	return marks
 
 
-# print(f'Total Autograded Marks = {grade1() + grade2() + grade3()} / 9.0')
-print(f'Total Autograded Marks = {grade1() + grade2()} / 9.0')
+print(f'Total Autograded Marks = {grade1() + grade2() + grade3()} / 9.0')
