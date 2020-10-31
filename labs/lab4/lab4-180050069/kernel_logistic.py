@@ -107,4 +107,4 @@ if __name__ == '__main__':
     plt.xlabel('Sigma')
     plt.ylabel('Mistakes')
     plt.title('A plot of sigma v/s mistakes')
-    # plt.show()
+    plt.show()

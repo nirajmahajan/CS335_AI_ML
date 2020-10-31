@@ -23,7 +23,7 @@ class KernelLogistic(object):
         for i in range(self.iterations):
         	preds = 1. / (1 + np.exp(-kernel.T @ self.alpha))
         	gradient = kernel @ (preds + ((self.lamda/2)*self.alpha) - self.train_y.reshape(-1,1))
-        	self.alpha -= self.eta*gradient
+        	self.alpha -= (1/self.train_X.shape[0])*self.eta*gradient
         # END TODO
 
 
@@ -107,4 +107,4 @@ if __name__ == '__main__':
     plt.xlabel('Sigma')
     plt.ylabel('Mistakes')
     plt.title('A plot of sigma v/s mistakes')
-    # plt.show()
+    plt.show()
