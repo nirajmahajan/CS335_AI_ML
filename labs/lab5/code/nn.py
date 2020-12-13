@@ -24,8 +24,7 @@ class NeuralNetwork:
     def computeLoss(self, Y, predictions):
         # Returns the crossentropy loss function given the prediction and the true labels Y
         # TODO 
-
-        raise NotImplementedError
+        return ((-Y*np.log(predictions[-1])) - ((1-Y)*np.log((1-predictions[-1])))).sum(1).mean()
 
         # END TODO
     def computeAccuracy(self, Y, predLabels):
@@ -56,7 +55,13 @@ class NeuralNetwork:
         # the output layer of the network as a list of np multi-dimensional arrays
         # Note: Activations at the first layer(input layer) is X itself     
         # TODO
-        raise NotImplementedError
+        ans = []
+        temp = X.copy()
+        ans.append(temp)
+        for l in self.layers:
+            temp = l.forwardpass(temp)
+            ans.append(temp)
+        return ans
         # END TODO
 
     def backpropagate(self, activations, Y):
@@ -67,7 +72,9 @@ class NeuralNetwork:
         # This method adjusts the weights(self.layers's weights) and biases(self.layers's biases) as calculated from the
         # backpropagation algorithm
         # Hint: Start with derivative of cross entropy from the last layer
-
         # TODO
-        raise NotImplementedError
+        A = activations[-1]
+        delta_init = (A-Y) / ((A*(1-A)))
+        for i in range(len(self.layers)-1,-1,-1):
+            delta_init = self.layers[i].backwardpass(self.alpha, activations[i], delta_init)
         # END TODO

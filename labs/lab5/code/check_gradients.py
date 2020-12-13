@@ -8,6 +8,14 @@ from layers import *
 np.random.seed(42)
 
 def check_fully_connected():
+    # XTrain = np.random.randn(20, 100)
+    # YTrain = np.random.randn(20, 10)
+
+    # nn1 = nn.NeuralNetwork(10, 1)
+    # nn1.addLayer(FullyConnectedLayer(100, 50, 'relu'))
+    # nn1.addLayer(FullyConnectedLayer(50, 30, 'relu'))
+    # nn1.addLayer(FullyConnectedLayer(30, 20, 'relu'))
+    # nn1.addLayer(FullyConnectedLayer(20, 10, 'softmax'))
     XTrain = np.random.randn(10, 100)
     YTrain = np.random.randn(10, 10)
 

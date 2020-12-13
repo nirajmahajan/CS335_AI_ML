@@ -55,15 +55,16 @@ class FullyConnectedLayer:
         '''
         # TODO
         if self.activation == 'relu':
-            raise NotImplementedError
+            self.data = relu_of_X((X@self.weights)+self.biases)
+            return self.data
         elif self.activation == 'softmax':
-            raise NotImplementedError
+            self.data =  softmax_of_X((X@self.weights)+self.biases)
+            return self.data
 
         else:
             print("ERROR: Incorrect activation specified: " + self.activation)
             exit()
 
-        pass
         # END TODO      
     def backwardpass(self, lr, activation_prev, delta):
         '''
@@ -74,15 +75,27 @@ class FullyConnectedLayer:
 
         # TODO 
         if self.activation == 'relu':
-            raise NotImplementedError
+            memoised_delta = gradient_relu_of_X(self.data, delta)
         elif self.activation == 'softmax':
-            raise NotImplementedError
-
+            memoised_delta = gradient_softmax_of_X(self.data, delta)
         else:
             print("ERROR: Incorrect activation specified: " + self.activation)
             exit()
+        # n, ic | n, oc
+        self.grad_w = (activation_prev.T @ memoised_delta)/self.data.shape[0]
+        #n , oc
+        self.grad_b = memoised_delta.sum(0)/self.data.shape[0]
 
-        pass
+        # n, oc | ic, oc
+        new_delta = memoised_delta@self.weights.T
+        
+        self.weights -= lr*self.grad_w
+        self.biases -= lr*self.grad_b
+
+        # Compute gradient wrt input to this layer
+        # Return del_error/del_activation_prev
+        return new_delta
+
         # END TODO
 class ConvolutionLayer:
     def __init__(self, in_channels, filter_size, numfilters, stride, activation):
@@ -114,10 +127,28 @@ class ConvolutionLayer:
         # OUTPUT activation matrix      :[n X self.out_depth X self.out_row X self.out_col]
 
         # TODO
-
-
+        self.data = np.zeros((X.shape[0],self.out_depth,self.out_row, self.out_col))
+        # och, ich, fr*fc
+        reshaped_weights = self.weights.reshape(self.out_depth, self.in_depth, -1)
         if self.activation == 'relu':
-            raise NotImplementedError
+            # n, och, or, oc
+            self.data = np.zeros((X.shape[0],self.out_depth,self.out_row, self.out_col))
+            # n, och, ich, or, oc, fr*fc
+            self.linkages = np.zeros((X.shape[0],self.out_depth, X.shape[1],self.out_row, self.out_col, self.filter_row*self.filter_col))
+            for ri in range(self.out_row):
+                for ci in range(self.out_col):
+                    offset_r = ri*self.stride
+                    offset_c = ci*self.stride
+
+                    # n,ich,fr*fc
+                    patch = X[:,:,offset_r:offset_r+self.filter_row,offset_c:offset_c+self.filter_col].reshape(X.shape[0], X.shape[1],-1)
+                    # [n,1,ich,fr*fc | 1, och, ich,fr*fc -> n, och,ich, fr*fc] 
+                    # n, och, ich, fr*fc1, -> n,och | 1, och
+                    weighted_patch = ((np.expand_dims(patch,1)*np.expand_dims(reshaped_weights,0)).sum(3).sum(2) + np.expand_dims(self.biases,0))
+                    self.data[:,:, ri, ci] = weighted_patch
+                    # n, och, ich, fr*fc
+                    self.linkages[:,:,:,ri, ci,:] = np.expand_dims(reshaped_weights, 0)
+            return relu_of_X(self.data)
         else:
             print("ERROR: Incorrect activation specified: " + self.activation)
             exit()
@@ -137,8 +168,36 @@ class ConvolutionLayer:
 
         ###############################################
         if self.activation == 'relu':
-            inp_delta = actual_gradient_relu_of_X(self.data, delta)
-            # raise NotImplementedError
+        	# n, och, or, oc
+            memoised_delta = gradient_relu_of_X(self.data, delta)
+
+            # n, ich, ir, ic
+            new_delta = np.zeros(activation_prev.shape)
+            # och,
+            grad_b = memoised_delta.sum(2).sum(2).mean(0)
+            # och, ich, fr, fc
+            grad_w = np.zeros(self.weights.shape)
+            for ri in range(self.out_row):
+                for ci in range(self.out_col):
+                    offset_r = ri*self.stride
+                    offset_c = ci*self.stride
+                    
+                    # n, och, ich, fr*fc | n, och, 1 -> n, ich, fr*fc 
+                    patch = (self.linkages[:,:,:,ri,ci,:]*np.expand_dims(np.expand_dims(memoised_delta[:,:,ri,ci], 2), 3)).sum(1)
+                    # n, ich, fr,fc | n,ich, fr,fc
+                    new_delta[:,:,offset_r:offset_r+self.filter_row,offset_c:offset_c+self.filter_col] += patch.reshape(patch.shape[0], patch.shape[1], self.filter_row,self.filter_col)
+
+                    # n,och, 1, 1, 1
+                    memoised_delta_chunk = np.expand_dims(np.expand_dims(np.expand_dims(memoised_delta[:,:,ri,ci],2),3),4)
+                    # n, 1, ich, fr, fc
+                    activation_prev_chunk = np.expand_dims(activation_prev[:,:,offset_r:offset_r+self.filter_row,offset_c:offset_c+self.filter_col], 1)
+                    # n, och, ich, fr, fc 
+                    grad_w += (memoised_delta_chunk*activation_prev_chunk).mean(0)
+
+
+            self.weights -= lr*grad_w
+            self.biases -= lr*grad_b
+            return new_delta
         else:
             print("ERROR: Incorrect activation specified: " + self.activation)
             exit()
@@ -171,7 +230,22 @@ class AvgPoolingLayer:
         # activations : Activations after one forward pass through this layer
         
         # TODO
-        pass
+        # n, ich, ro, co
+        self.data = np.zeros((X.shape[0],X.shape[1],self.out_row, self.out_col))
+        # n, ich, ro, co, fr*fc
+        self.linkages = np.zeros((X.shape[0],X.shape[1],self.out_row,self.out_col,self.filter_row*self.filter_col))
+        for ri in range(self.out_row):
+            for ci in range(self.out_col):
+                offset_r = ri*self.stride
+                offset_c = ci*self.stride
+                
+                # n, ich, fr*fc
+                patch = X[:,:,offset_r:offset_r+self.filter_row,offset_c:offset_c+self.filter_col].reshape(X.shape[0], X.shape[1],-1)
+                # n, ich
+                self.data[:,:, ri, ci] = patch.mean(2)
+                # n, ich, fr*fc
+                self.linkages[:,:, ri, ci,:] = 1/(self.filter_row*self.filter_col)
+        return self.data
         # END TODO
         ###############################################
         
@@ -185,7 +259,16 @@ class AvgPoolingLayer:
         # new_delta : del_Error/ del_activation_prev
         
         # TODO
-        pass
+        ans = np.zeros(activation_prev.shape)
+        for ri in range(self.out_row):
+            for ci in range(self.out_col):
+                offset_r = ri*self.stride
+                offset_c = ci*self.stride
+                # n, ich, fr*fc | n,och,1
+                patch = self.linkages[:,:,ri,ci,:]*np.expand_dims(delta[:,:,ri,ci], 2)
+                # n, ich, fr,fc
+                ans[:,:,offset_r:offset_r+self.filter_row,offset_c:offset_c+self.filter_col] += patch.reshape(ans.shape[0], ans.shape[1], self.filter_row, self.filter_col)
+        return ans
         # END TODO
         ###############################################
 
@@ -216,7 +299,26 @@ class MaxPoolingLayer:
         # activations : Activations after one forward pass through this layer
         
         # TODO
-        pass
+        # n, ich, or, oc
+        self.data = np.zeros((X.shape[0],X.shape[1],self.out_row, self.out_col))
+        # n, ich, or, oc, fr*fc
+        self.linkages = np.zeros((X.shape[0],X.shape[1],self.out_row,self.out_col,self.filter_row*self.filter_col))
+        for ri in range(self.out_row):
+            for ci in range(self.out_col):
+                offset_r = ri*self.stride
+                offset_c = ci*self.stride
+                # n, ich, fr*fc
+                patch = X[:,:,offset_r:offset_r+self.filter_row,offset_c:offset_c+self.filter_col].reshape(X.shape[0], X.shape[1],-1)
+                # n, ich
+                self.data[:,:, ri, ci] = patch.max(2)
+                # n*ich,fr*fc
+                temp_patch = patch.reshape(-1,self.filter_row*self.filter_col)
+                # n*ich,fr*fc
+                temp = self.linkages[:,:, ri, ci,:].reshape(-1,self.filter_row*self.filter_col)
+                # n*ich,fr*fc
+                temp[np.arange(X.shape[0]*X.shape[1]),np.argmax(temp_patch,1)] = 1
+                self.linkages[:,:,ri,ci,:] = temp.reshape(X.shape[0],X.shape[1],-1)
+        return self.data
         # END TODO
         ###############################################
         
@@ -228,9 +330,17 @@ class MaxPoolingLayer:
         # delta : del_Error/ del_activation_curr
         # Output
         # new_delta : del_Error/ del_activation_prev
-        
         # TODO
-        pass
+        ans = np.zeros(activation_prev.shape)
+        for ri in range(self.out_row):
+            for ci in range(self.out_col):
+                offset_r = ri*self.stride
+                offset_c = ci*self.stride
+                # n, ich, fr*fc | n, och, 1
+                patch = self.linkages[:,:,ri,ci,:]*np.expand_dims(delta[:,:,ri,ci], 2)
+                # n, ich, fr,fc
+                ans[:,:,offset_r:offset_r+self.filter_row,offset_c:offset_c+self.filter_col] += patch.reshape(ans.shape[0], ans.shape[1], self.filter_row, self.filter_col)
+        return ans
         # END TODO
         ###############################################
 
@@ -242,10 +352,10 @@ class FlattenLayer:
     
     def forwardpass(self, X):
         # TODO
-        # print(X.shape)
-        pass
+       	self.n, self.ich, self.ir, self.ic = X.shape 
+        return X.reshape(self.n, -1)
     def backwardpass(self, lr, activation_prev, delta):
-        pass
+        return delta.reshape(self.n, self.ich, self.ir, self.ic)
         # END TODO
 
 # Function for the activation and its derivative
@@ -256,7 +366,10 @@ def relu_of_X(X):
     # Returns: Activations after one forward pass through this relu layer | shape: batchSize x self.out_nodes
     # This will only be called for layers with activation relu
     # TODO
-    raise NotImplementedError
+    ans = X.copy()
+    indices = ans <= 0
+    ans[indices] = 0
+    return ans
     # END TODO 
     
 def gradient_relu_of_X(X, delta):
@@ -268,7 +381,9 @@ def gradient_relu_of_X(X, delta):
     # This will only be called for layers with activation relu amd during backwardpass
     
     # TODO
-    raise NotImplementedError
+    ans = np.ones(X.shape)
+    ans[X<=0] = 0
+    return ans*delta
     # END TODO
 
 def softmax_of_X(X):
@@ -278,7 +393,8 @@ def softmax_of_X(X):
     # This will only be called for layers with activation softmax
     
     # TODO
-    raise NotImplementedError
+    ans = np.exp(X)
+    return ans/(np.sum(ans,1,keepdims=True))
     # END TODO  
 def gradient_softmax_of_X(X, delta):
     # Input
@@ -289,5 +405,13 @@ def gradient_softmax_of_X(X, delta):
     # Hint: You might need to compute Jacobian first
 
     # TODO
-    raise NotImplementedError
+    n, c = X.shape
+    Jacobs = np.zeros((n,c,c))
+    diag = np.arange(c)
+    Jacobs[:,diag,diag] = X
+    x1 = np.expand_dims(X,2)
+    x2 = np.expand_dims(X,1)
+    Jacobs -= x1*x2
+
+    return (Jacobs*np.expand_dims(delta,2)).sum(1)
     # END TODO
