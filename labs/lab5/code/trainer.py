@@ -37,7 +37,7 @@ class Trainer:
 			self.YTrain = self.YTrain[0:5000,:]
 
 			self.save_model = True
-			self.model_name = "model_3352.p"
+			self.model_name = "model_.p"
 
 			# Add your network topology along with other hyperparameters here
 			self.batch_size = 100
@@ -64,11 +64,11 @@ class Trainer:
 			# Add your network topology along with other hyperparameters here
 			self.batch_size = 20
 			self.epochs = 30
-			self.lr = 0.05
+			self.lr = 0.1
 			self.out_nodes = 2
 			self.nn = nn.NeuralNetwork(self.out_nodes, self.lr)
-			self.nn.addLayer(FullyConnectedLayer(2, 2, 'relu'))
-			self.nn.addLayer(FullyConnectedLayer(2, self.out_nodes, 'softmax'))
+			self.nn.addLayer(FullyConnectedLayer(2, 3, 'relu'))
+			self.nn.addLayer(FullyConnectedLayer(3, self.out_nodes, 'softmax'))
 
 
 		if dataset_name == 'circle':
@@ -76,11 +76,11 @@ class Trainer:
 			# Add your network topology along with other hyperparameters here
 			self.batch_size = 20
 			self.epochs = 30
-			self.lr = 0.5
+			self.lr = 0.1
 			self.out_nodes = 2
 			self.nn = nn.NeuralNetwork(self.out_nodes, self.lr)
-			self.nn.addLayer(FullyConnectedLayer(2, 2, 'relu'))
-			self.nn.addLayer(FullyConnectedLayer(2, self.out_nodes, 'softmax'))
+			self.nn.addLayer(FullyConnectedLayer(2, 3, 'relu'))
+			self.nn.addLayer(FullyConnectedLayer(3, self.out_nodes, 'softmax'))
 	def train(self, verbose=True):
 		# Method for training the Neural Network
 		# Input
