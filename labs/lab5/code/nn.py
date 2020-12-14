@@ -24,7 +24,7 @@ class NeuralNetwork:
     def computeLoss(self, Y, predictions):
         # Returns the crossentropy loss function given the prediction and the true labels Y
         # TODO 
-        return ((-Y*np.log(predictions[-1])) - ((1-Y)*np.log((1-predictions[-1])))).sum(1).mean()
+        return ((-Y*np.log(np.clip(predictions[-1], 1e-10, 1-1e-10))) - ((1-Y)*np.log(np.clip(1-predictions[-1], 1e-10, 1-1e-10)))).sum(1).mean()
 
         # END TODO
     def computeAccuracy(self, Y, predLabels):
@@ -74,7 +74,7 @@ class NeuralNetwork:
         # Hint: Start with derivative of cross entropy from the last layer
         # TODO
         A = activations[-1]
-        delta_init = (A-Y) / ((A*(1-A)))
+        delta_init = (A-Y) / (((A*(1-A)))+ 1e-10)
         for i in range(len(self.layers)-1,-1,-1):
             delta_init = self.layers[i].backwardpass(self.alpha, activations[i], delta_init)
         # END TODO

@@ -17,11 +17,14 @@ class Trainer:
 		if dataset_name == 'MNIST':
 			self.XTrain, self.YTrain, self.XVal, self.YVal, self.XTest, self.YTest = readMNIST()
 			# Add your network topology along with other hyperparameters here
-			# self.batch_size = 
-			# self.epochs = 
-			# self.lr = 0.001
-			# self.nn = 
-			# self.nn.addLayer()
+			self.batch_size = 50
+			self.epochs = 10
+			self.lr = 0.1
+			self.out_nodes = 10
+			self.nn = nn.NeuralNetwork(self.out_nodes, self.lr)
+			self.nn.addLayer(FullyConnectedLayer(784, 20, 'relu'))
+			self.nn.addLayer(FullyConnectedLayer(20, 40, 'relu'))
+			self.nn.addLayer(FullyConnectedLayer(40, self.out_nodes, 'softmax'))
 
 
 		if dataset_name == 'CIFAR10':
@@ -34,33 +37,50 @@ class Trainer:
 			self.YTrain = self.YTrain[0:5000,:]
 
 			self.save_model = True
-			self.model_name = "model.p"
+			self.model_name = "model_3352.p"
 
 			# Add your network topology along with other hyperparameters here
-			# self.batch_size = 
-			# self.epochs = 
-			# self.lr = 
-			# self.nn = 
-			# nn.addLayer()
+			self.batch_size = 100
+			self.epochs = 20
+			self.lr = 0.1
+			self.out_nodes = 10
+			self.nn = nn.NeuralNetwork(self.out_nodes, self.lr)
+			# self.nn.addLayer(ConvolutionLayer([3, 32, 32], [3, 3], 16, 1, 'relu'))
+			# self.nn.addLayer(MaxPoolingLayer([16, 30, 30], [2, 2], 2))
+			# self.nn.addLayer(ConvolutionLayer([16, 15, 15], [3, 3], 32, 1, 'relu'))
+			# self.nn.addLayer(AvgPoolingLayer([32, 13, 13], [2, 2], 2))
+			# self.nn.addLayer(FlattenLayer())
+			# self.nn.addLayer(FullyConnectedLayer(1152, 512, 'relu'))
+			# self.nn.addLayer(FullyConnectedLayer(512, 10, 'softmax'))
+			self.nn.addLayer(ConvolutionLayer([3, 32, 32], [5, 5], 16, 3, 'relu'))
+			self.nn.addLayer(MaxPoolingLayer([16, 10, 10], [2, 2], 2))
+			self.nn.addLayer(FlattenLayer())
+			self.nn.addLayer(FullyConnectedLayer(400, 256, 'relu'))
+			self.nn.addLayer(FullyConnectedLayer(256, 256, 'relu'))
+			self.nn.addLayer(FullyConnectedLayer(256, 10, 'softmax'))
 
 		if dataset_name == 'XOR':
 			self.XTrain, self.YTrain, self.XVal, self.YVal, self.XTest, self.YTest = readXOR()
 			# Add your network topology along with other hyperparameters here
-			# self.batch_size = 
-			# self.epochs = 
-			# self.lr = 
-			# self.nn = 
-			# nn.addLayer()
+			self.batch_size = 20
+			self.epochs = 30
+			self.lr = 0.05
+			self.out_nodes = 2
+			self.nn = nn.NeuralNetwork(self.out_nodes, self.lr)
+			self.nn.addLayer(FullyConnectedLayer(2, 2, 'relu'))
+			self.nn.addLayer(FullyConnectedLayer(2, self.out_nodes, 'softmax'))
 
 
 		if dataset_name == 'circle':
 			self.XTrain, self.YTrain, self.XVal, self.YVal, self.XTest, self.YTest = readCircle()
 			# Add your network topology along with other hyperparameters here
-			# self.batch_size = 
-			# self.epochs = 
-			# self.lr = 
-			# self.nn = 
-			# nn.addLayer()         
+			self.batch_size = 20
+			self.epochs = 30
+			self.lr = 0.5
+			self.out_nodes = 2
+			self.nn = nn.NeuralNetwork(self.out_nodes, self.lr)
+			self.nn.addLayer(FullyConnectedLayer(2, 2, 'relu'))
+			self.nn.addLayer(FullyConnectedLayer(2, self.out_nodes, 'softmax'))
 	def train(self, verbose=True):
 		# Method for training the Neural Network
 		# Input
@@ -84,18 +104,30 @@ class Trainer:
 
 			# TODO
 			# Shuffle the training data for the current epoch
-
+			n_data = self.XTrain.shape[0]
+			n_dims = self.XTrain.shape[1]
+			indices = np.random.choice(n_data,n_data,replace = False)
+			self.XTrain = self.XTrain[indices]
+			self.YTrain = self.YTrain[indices]
 
 			# Initializing training loss and accuracy
 			trainLoss = 0
 			trainAcc = 0
 
 			# Divide the training data into mini-batches
-
+			numBatches = n_data//self.batch_size
+			for i in range(numBatches):
+				offset = i*self.batch_size
 				# Calculate the activations after the feedforward pass
+				preds = self.nn.feedforward(self.XTrain[offset:offset+self.batch_size])
 				# Compute the loss  
+				curr_loss = self.nn.computeLoss(self.YTrain[offset:offset+self.batch_size],preds)
+				trainLoss += curr_loss
 				# Calculate the training accuracy for the current batch
+				predlabels = oneHotEncodeY(np.argmax(preds[-1],1), self.out_nodes)
+				trainAcc += self.nn.computeAccuracy(self.YTrain[offset:offset+self.batch_size], predlabels)
 				# Backpropagation Pass to adjust weights and biases of the neural network
+				self.nn.backpropagate(preds, self.YTrain[offset:offset+self.batch_size])
 
 			# END TODO
 			# Print Training loss and accuracy statistics
@@ -107,7 +139,7 @@ class Trainer:
 				model = []
 				for l in self.nn.layers:
 					# print(type(l).__name__)
-					if type(l).__name__ != "AvgPoolingLayer" and type(l).__name__ != "FlattenLayer": 
+					if type(l).__name__ != "AvgPoolingLayer" and type(l).__name__ != "FlattenLayer" and type(l).__name__ != "MaxPoolingLayer": 
 						model.append(l.weights) 
 						model.append(l.biases)
 				pickle.dump(model,open(self.model_name,"wb"))
